@@ -1,0 +1,356 @@
+---
+title: Виртуальный DOM в React
+date: "Jan 27 2022"
+description: "Виртуальный DOM в React: как это работает и как избежать распространённых проблем" 
+tags: ["react", "javascript"]
+topic: "Software Development"
+cover_url: "/react-virtual-dom.png"
+type: 'article'
+author: TerrniT
+original_url: "https://www.terrnit.com/articles/react-virtual-dom"
+---
+
+
+## Введение  
+Привет, с вами Глеб Котовский!  
+Сегодня я хочу поговорить о Виртуальном DOM, а именно — о реализации в React.  
+
+Виртуальный DOM (Virtual Document Object Model) — это крутая концепция в программировании, которая хранит «виртуальное» представление пользовательского интерфейса в памяти. Это представление синхронизируется с реальным DOM браузера с помощью библиотеки.  
+Виртуальный DOM — важная часть многих JavaScript-фреймворков, и именно он во многом обеспечивает их высокую производительность. В этой статье мы разберём, как работает Виртуальный DOM в React и почему он так важен для этой библиотеки.  
+
+## Что такое DOM?  
+
+Когда веб-страница загружается в браузере, она обычно получает HTML-документ с сервера. Браузер преобразует этот HTML в древовидную логическую структуру, чтобы отобразить страницу для пользователя. Эта структура называется DOM.  
+**Document Object Model (DOM)** — это логическое дерево, описывающее документ. Каждая ветвь этого дерева заканчивается узлом (`node`), который содержит объект (`object`). Поскольку браузер парсит документ в такую структуру, нужны методы для программного доступа к дереву, чтобы изменять его структуру, стиль или содержимое. Это привело к созданию **DOM API**, который предоставляет методы для работы с узлами дерева.  
+
+![DOM Objects](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/rm4yysto8ufdknqxi45c.png)  
+
+## Реализация Виртуального DOM в React  
+
+Чтобы оптимизировать перерисовку в веб-приложениях, разные JavaScript-фреймворки используют разные стратегии. React применяет концепцию Виртуального DOM.  
+В React Виртуальный DOM представляет пользовательский интерфейс в виде «виртуального» дерева, где каждый элемент — это узел, содержащий объект. Это представление хранится в памяти и синхронизируется с реальным DOM через библиотеку **React DOM**.  
+В то время как React и многие другие популярные фреймворки используют Виртуальный DOM, **Svelte**, например, обходится без него. Svelte работает напрямую с DOM в браузере и изменяет его по мере необходимости.  
+
+Вот простой пример компонента React, демонстрирующий работу Виртуального DOM:  
+
+```javascript
+import React, { useState } from 'react';
+
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  const increment = () => setCount(count + 1);
+
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={increment}>Increment</button>
+    </div>
+  );
+}
+```  
+
+В этом примере:  
+- Компонент отображает счётчик и кнопку.  
+- При клике на кнопку состояние обновляется, и React создаёт новое Виртуальное DOM-дерево.  
+- Алгоритм **diffing** сравнивает изменения (только значение счётчика) и обновляет реальный DOM.  
+
+После первого рендера, когда состояние `count: 0`, реальный DOM будет выглядеть так:  
+
+```javascript
+<div>
+  <h1>Counter</h1>
+  <p>Count: 0</p>
+  <button>Increment</button>
+</div>
+```  
+
+## Как работает Виртуальный DOM  
+
+Рассмотрим процесс на примере компонента:  
+
+### 1. Определение компонента  
+
+```javascript
+import React, { useState } from 'react';
+
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  const increment = () => setCount(count + 1);
+
+  return (
+    <div>
+      <h1>Counter</h1>
+      <p>Count: {count}</p>
+      <button onClick={increment}>Increment</button>
+    </div>
+  );
+}
+```  
+
+### 2. Первоначальный рендеринг  
+
+#### 2.1 Инициализация компонента  
+React вызывает функцию `Counter`.  
+
+#### 2.2 Инициализация состояния  
+`useState(0)` устанавливает начальное состояние `count` в `0`.  
+
+#### 2.3 Создание Виртуального DOM  
+React генерирует Виртуальное DOM-дерево на основе возвращаемого JSX. Это легковесное представление интерфейса.  
+
+Для первого рендера Виртуальный DOM выглядит так:  
+
+```javascript
+{
+  "type": "div",
+  "props": {
+    "children": [
+      { "type": "h1", "props": { "children": "Counter" } },
+      { "type": "p", "props": { "children": "Count: 0" } },
+      { "type": "button", "props": { "children": "Increment" } }
+    ]
+  }
+}
+```  
+
+#### 2.4 Обновление реального DOM  
+React преобразует Виртуальный DOM в реальный DOM, создавая такой HTML:  
+
+```javascript
+<div>
+  <h1>Counter</h1>
+  <p>Count: 0</p>
+  <button>Increment</button>
+</div>
+```  
+
+### 3. Взаимодействие с пользователем  
+
+При клике на кнопку «Increment» происходят следующие шаги:  
+
+#### 3.1 Обработка события  
+Срабатывает `onClick`, вызывая функцию `increment`, которая обновляет состояние через `setCount(count + 1)`.  
+
+#### 3.2 Обновление состояния  
+Изменение состояния приводит к необходимости перерисовки компонента.  
+
+### 4. Процесс повторного рендеринга  
+
+#### 4.1 Повторный вызов компонента  
+React снова вызывает `Counter` из-за изменения состояния.  
+
+#### 4.2 Создание нового Виртуального DOM  
+Формируется новое Виртуальное DOM-дерево с обновлённым состоянием:  
+
+```javascript
+{
+  "type": "div",
+  "props": {
+    "children": [
+      { "type": "h1", "props": { "children": "Counter" } },
+      { "type": "p", "props": { "children": "Count: 1" } },
+      { "type": "button", "props": { "children": "Increment" } }
+    ]
+  }
+}
+```  
+
+#### 4.3 Сравнение Виртуального DOM (Diffing)  
+React сравнивает новое Виртуальное DOM с предыдущим и находит изменения — в данном случае только текст внутри `<p>` (с «Count: 0» на «Count: 1»).  
+
+#### 4.4 Синхронизация с реальным DOM  
+Обновляется только изменённая часть реального DOM:  
+
+```javascript
+<div>
+  <h1>Counter</h1>
+  <p>Count: 1</p> <!-- Обновлённый контент -->
+  <button>Increment</button>
+</div>
+```  
+
+### 5. Оптимизация производительности  
+
+#### 5.1 Группировка обновлений  
+Если происходит несколько изменений состояния подряд (например, быстрые клики на кнопку), React может объединить их в один рендер, минимизируя количество обновлений DOM.  
+
+## Распространённые проблемы с Виртуальным DOM и их решения  
+
+1. **Проблемы с производительностью**  
+   - **Проблема**: Лишние перерисовки даже с Виртуальным DOM.  
+   - **Решение**: Используйте `React.memo` для мемоизации функциональных компонентов.  
+
+```javascript
+const MyComponent = React.memo(({ value }) => {
+  console.log('Rendered: ', value);
+  return <div>{value}</div>;
+});
+```  
+
+> **Для классовых компонентов**: Используйте `shouldComponentUpdate`.  
+
+```javascript
+class MyClassComponent extends React.Component {
+  shouldComponentUpdate(nextProps) {
+    return nextProps.value !== this.props.value;
+  }
+
+  render() {
+    return <div>{this.props.value}</div>;
+  }
+}
+```  
+
+2. **Некорректное управление ключами (key)**  
+   - **Проблема**: Неправильные `key` в списках приводят к ошибкам.  
+   - **Решение**: Используйте уникальные и стабильные ключи, а не индексы массива.  
+
+```javascript
+const items = ['Apple', 'Banana', 'Cherry'];
+return (
+  <ul>
+    {items.map(item => (
+      <li key={item}>{item}</li> // Лучше использовать уникальные значения
+    ))}
+  </ul>
+);
+```  
+
+3. **Чрезмерное использование состояния**  
+   - **Проблема**: Слишком частые обновления состояния снижают производительность.  
+   - **Решение**: Объединяйте связанные состояния.  
+
+```javascript
+const [state, setState] = useState({
+  name: '',
+  age: 0,
+});
+
+const updateAge = (newAge) => {
+  setState(prevState => ({ ...prevState, age: newAge }));
+};
+```  
+
+4. **Использование inline-функций**  
+   - **Проблема**: Inline-функции создаются заново при каждом рендере.  
+   - **Решение**: Мемоизируйте функции через `useCallback`.  
+
+```javascript
+const increment = useCallback(() => {
+  setCount(c => c + 1);
+}, []); // Функция не пересоздаётся, если зависимости не изменились
+```  
+
+5. **Глубокие деревья компонентов**  
+   - **Проблема**: Вложенные компоненты перерисовываются при обновлении родителя.  
+   - **Решение**: Используйте контекст (`Context`).  
+
+```javascript
+const CountContext = React.createContext();
+
+const ParentComponent = () => {
+  const [count, setCount] = useState(0);
+
+  return (
+    <CountContext.Provider value={{ count, setCount }}>
+      <ChildComponent />
+    </CountContext.Provider>
+  );
+};
+
+const ChildComponent = () => {
+  const { count, setCount } = useContext(CountContext);
+  return <div onClick={() => setCount(count + 1)}>Count: {count}</div>;
+};
+```  
+
+6. **Лишние перерисовки из-за родительских компонентов**  
+   - **Проблема**: Дочерние компоненты перерисовываются при обновлении родителя.  
+   - **Решение**: Мемоизируйте дочерние компоненты.  
+
+```javascript
+const ChildComponent = React.memo(({ count }) => {
+  return <div>Count: {count}</div>;
+});
+```  
+
+7. **Медленные («тяжёлые») компоненты**  
+   - **Проблема**: Сложные компоненты замедляют приложение.  
+   - **Решение**: Используйте `React.lazy` и `React.Suspense` для ленивой загрузки.  
+
+```javascript
+const LazyComponent = React.lazy(() => import('./LazyComponent'));
+
+const App = () => (
+  <React.Suspense fallback={<div>Loading...</div>}>
+    <LazyComponent />
+  </React.Suspense>
+);
+```  
+
+8. **Побочные эффекты**  
+   - **Проблема**: Неправильная работа с побочными эффектами вызывает баги.  
+   - **Решение**: Используйте `useEffect` с правильными зависимостями.  
+
+```javascript
+useEffect(() => {
+  const timer = setTimeout(() => {
+    console.log('Time elapsed');
+  }, 1000);
+
+  return () => clearTimeout(timer); // Очистка при размонтировании или изменении зависимостей
+}, [dependencies]); // Укажите реальные зависимости
+```  
+
+9. **Путаница между состоянием и пропсами**  
+   - **Проблема**: Непонимание, когда использовать `state`, а когда `props`.  
+   - **Решение**:  
+     - `props` — для данных, управляемых извне.  
+     - `state` — для локальных данных компонента.  
+
+```javascript
+const ParentComponent = () => {
+  const [name, setName] = useState('John');
+
+  return <ChildComponent name={name} setName={setName} />;
+};
+
+const ChildComponent = ({ name, setName }) => (
+  <div>
+    <p>{name}</p>
+    <button onClick={() => setName('Jane')}>Change Name</button>
+  </div>
+);
+```  
+
+10. **Игнорирование доступности (a11y)**  
+    - **Проблема**: Компоненты могут быть недоступны для пользователей с ограниченными возможностями.  
+    - **Решение**: Используйте семантический HTML и инструменты доступности.  
+
+```javascript
+const AccessibleButton = () => (
+  <button aria-label="Increment" onClick={increment}>
+    Increment
+  </button>
+);
+```  
+
+## Заключение  
+
+Виртуальный DOM в React — это мощный инструмент, который значительно ускоряет работу веб-приложений. Создавая легковесную копию реального DOM, React минимизирует затратные операции прямого изменения DOM.  
+
+Однако важно учитывать возможные проблемы:  
+- избыточные перерисовки,  
+- некорректное управление ключами в списках,  
+- путаницу между состоянием и пропсами.  
+
+Следуя лучшим практикам (мемоизация, контекст, управление побочными эффектами), вы сможете раскрыть весь потенциал React и создавать быстрые приложения.  
+
+Удачного кодинга!  
+
+## Ресурсы  
+1) [https://www.geeksforgeeks.org/reactjs-virtual-dom/](https://www.geeksforgeeks.org/reactjs-virtual-dom/)  
+2) [https://svelte.dev/blog/virtual-dom-is-pure-overhead](https://svelte.dev/blog/virtual-dom-is-pure-overhead)  
+3) [https://refine.dev/blog/react-virtual-dom/#introduction](https://refine.dev/blog/react-virtual-dom/#introduction)

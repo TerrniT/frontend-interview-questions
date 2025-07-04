@@ -5,6 +5,7 @@ import {
   DocsDescription,
   DocsTitle,
 } from 'fumadocs-ui/page';
+import { Banner } from "fumadocs-ui/components/banner"
 import { notFound } from 'next/navigation';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { getMDXComponents } from '@/mdx-components';
@@ -45,8 +46,10 @@ export async function generateMetadata(props: {
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
+
   return {
     title: page.data.title,
     description: page.data.description,
+    //original_url: page.data.original_url ?? null,
   };
 }
