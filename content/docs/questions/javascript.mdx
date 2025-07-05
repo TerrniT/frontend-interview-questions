@@ -1,13 +1,72 @@
 ---
 title: Javascript
-description: Your first document
 ---
 
-Welcome to the docs! You can start writing documents in `/content/docs`.
 
-## What is Next?
+### В чем разница между  == и  ===? (basic)
+Оператор двойного равенства производит приведение типов, оператор строгого равенства - нет
 
-<Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.vercel.app" />
-</Cards>
+**Пример:**
+```js
+1 == "1";   // true (строка преобразуется в число)
+1 === "1";  // false (разные типы)
+null == undefined;  // true
+null === undefined; // false
+```
+
+### Что такое var, let, const? В чем разница? (basic)
+- `var` – устаревший способ объявления переменных. Имеет function scope, подвержен hoisting, можно переопределять.
+- `let` – блочная область видимости ({}), нельзя переобъявлять, но можно изменять.
+- `const` – блочная область видимости, нельзя переобъявлять и изменять (но можно менять свойства объекта).
+
+**Пример**:
+```js
+var a = 10; // function-scoped, hoisted
+let b = 20; // block-scoped, mutable
+const c = 30; // block-scoped, immutable (но если объект — можно менять свойства)
+
+if (true) {
+  var a = 100; // перезапишет внешнюю `a`
+  let b = 200; // новая переменная только в этом блоке
+  const c = 300; // новая переменная только в этом блоке
+}
+
+console.log(a); // 100 (var "протекает")
+console.log(b); // 20 (let ограничен блоком)
+console.log(c); // 30 (const ограничен блоком)
+```
+
+### Что такое Hoisting? (basic)
+Механизм, при котором объявления переменных (`var`) и функций поднимаются вверх своей области видимости перед выполнением кода.
+
+**Пример:**
+```js
+console.log(x); // undefined (var поднята, но не инициализирована)
+var x = 10;
+
+foo(); // "Работает!" (функция поднята полностью)
+function foo() {
+  console.log("Работает!");
+}
+
+// let/const тоже "поднимаются", но попадают в Temporal Dead Zone (TDZ)
+console.log(y); // ReferenceError
+let y = 5;
+```
+
+### Closures: Как работают замыкания? (basic)
+Функция, которая запоминает лексическое окружение, где она была создана, даже если выполняется вне этого окружения.
+
+**Пример:**
+```js
+function createCounter() {
+  let count = 0;
+  return function() {
+    return ++count;
+  };
+}
+
+const counter = createCounter();
+console.log(counter()); // 1
+console.log(counter()); // 2 (count сохраняется в замыкании)
+```
