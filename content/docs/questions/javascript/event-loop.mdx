@@ -1,0 +1,157 @@
+---
+title: Event Loop
+description: Как работает Event Loop в JavaScript?
+---
+
+**Event Loop** — это механизм в JavaScript, который управляет асинхронными задачами и очередями событий. Он позволяет JavaScript работать в **однопоточной** модели, обрабатывая асинхронные операции, не блокируя основной поток выполнения.
+
+## Архитектура Event Loop
+
+<Mermaid
+  chart="
+flowchart TD;
+    A[Call Stack] --> B[Web APIs];
+    B --> C[Callback Queue];
+    C --> D[Event Loop];
+    D --> A;
+    B --> E[Microtask Queue];
+    E --> D;"
+/>
+
+## Как работает Event Loop?
+
+Event Loop — это бесконечный цикл, в котором выполняются обработчики событий. В процессе его работы браузер распределяет задачи по двум основным очередям:
+
+- **Микротаски** — это задачи, такие как промисы, `queueMicrotask()`, `MutationObserver`
+- **Макротаски** — это задачи, такие как `setTimeout`, события, таймеры, запросы `fetch`
+
+### Основной порядок выполнения
+
+```mermaid
+gantt
+    title Порядок выполнения задач
+    dateFormat  X
+    axisFormat %s
+    
+    section Синхронный код
+    Выполнение синхронного кода : 0, 2
+    section Микротаски
+    Обработка всех микротаск : 2, 1
+    section Макротаски
+    Одна макротаска : 3, 1
+    section Рендеринг
+    Перерисовка (при необходимости) : 4, 1
+```
+
+1. **Сначала выполняются все синхронные задачи** из стека вызовов (Call Stack)
+2. **Затем выполняются все задачи из очереди микротасков**
+3. После выполнения всех микротасков **очередь очищается**
+4. **Далее из очереди макротасков берется одна макрозадача и выполняется**
+5. После выполнения макрозадачи **проверяется, нужно ли выполнить перерисовку страницы**
+6. **Повторный цикл**
+
+### Структуры данных
+
+<Mermaid
+  chart="
+flowchart LR;
+    subgraph Runtime;
+        S[Call Stack] -->|вызов| W[Web APIs];
+        W -->|колбэк| M[Microtask Queue];
+        W -->|колбэк| C[Callback Queue];
+    end;
+    M -->|приоритет| E[Event Loop];
+    C --> E;
+    E --> S;"
+/>
+
+1. **Call Stack (LIFO)**:
+   - Стек вызовов содержит все выполняемые функции
+   - Когда функция вызывается - попадает в стек, когда завершается - удаляется
+
+2. **Web API**:
+   - Асинхронные операции (`setTimeout`, события, запросы)
+   - После выполнения колбэк попадает в соответствующую очередь
+
+3. **Очереди**:
+   - Microtask Queue - для промисов и микротаск
+   - Callback Queue - для макротаск
+
+## Микротаски vs. Макротаски
+
+<Mermaid
+  chart="
+pie
+    title Приоритет выполнения
+    'Микротаски' : 65
+    'Макротаски' : 35"
+/>
+
+- **Макротаски**:
+  - `setTimeout`, `setInterval`, события UI
+  - Выполняются по одной за цикл
+
+- **Микротаски**:
+  - Промисы, `queueMicrotask`, `MutationObserver`
+  - Выполняются **все** перед следующей макротаской
+
+## Практический пример
+
+```javascript
+console.log("Script start");
+
+setTimeout(() => console.log("setTimeout"), 0);
+
+Promise.resolve()
+  .then(() => console.log("Promise 1"))
+  .then(() => console.log("Promise 2"));
+
+console.log("Script end");
+```
+
+<Mermaid
+  chart="
+sequenceDiagram
+    participant Console
+    participant CallStack
+    participant WebAPI
+    participant Microtasks
+    participant Macrotasks
+    Console->>CallStack: 'Script start'
+    CallStack->>WebAPI: setTimeout
+    CallStack->>WebAPI: Promise
+    Console->>CallStack: 'Script end'
+    WebAPI->>Microtasks: Promise 1
+    Microtasks->>CallStack: Promise 1
+    WebAPI->>Microtasks: Promise 2
+    Microtasks->>CallStack: Promise 2
+    WebAPI->>Macrotasks: setTimeout
+    Macrotasks->>CallStack: setTimeout"
+/>
+
+**Вывод:**
+1. Script start
+2. Script end
+3. Promise 1
+4. Promise 2
+5. setTimeout
+
+
+<Callout title="Ключевое правило">
+ Микротаски всегда выполняются между макротасками, даже если задержка `setTimeout` равна 0.
+</Callout>
+
+### Итог
+
+Event Loop работает по чёткому алгоритму:
+1. Выполнить весь синхронный код
+2. Обработать **все** микротаски
+3. Выполнить **одну** макротаску
+4. При необходимости - отрисовать изменения
+5. Повторить
+
+
+## Ссылки
+
+**todo**
+- [Youtube: Ulbi TV объясняет как работает Event Loop]()  
