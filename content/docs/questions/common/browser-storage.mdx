@@ -1,0 +1,164 @@
+---
+title: Браузерные хранилища данных
+description: Сравнение Cookie, LocalStorage, SessionStorage и IndexedDB с примерами использования
+---
+
+
+В браузере существует несколько видов **встроенных хранилищ данных**, которые можно использовать для сохранения состояния пользователя, кэша, настроек и т.п.
+
+<Mermaid
+  chart="
+graph TD;
+subgraph Browser[Браузерные хранилища]
+A[Cookie];
+B[LocalStorage];
+C[SessionStorage];
+D[IndexedDB];
+end
+Client[Клиентский код] --> Browser;
+Server[Сервер] --> A;
+"
+/>
+
+---
+
+## Основные типы хранилищ
+
+| **Хранилище**    | **Объём**   | **Доступность**       | **Срок жизни**          | **Отправляется на сервер** | **Поддержка**       |
+|------------------|-------------|-----------------------|-------------------------|---------------------------|---------------------|
+| **Cookie**       | ~4 KB       | Сервер и клиент       | Зависит от Expires      | Да                        | Все браузеры        |
+| **LocalStorage** | ~5–10 MB    | Только клиент         | До удаления             | Нет                       | Все браузеры        |
+| **SessionStorage** | ~5–10 MB  | Только клиент         | Пока открыта вкладка    | Нет                       | Все браузеры        |
+| **IndexedDB**    | 100+ MB     | Только клиент         | До удаления             | Нет                       | Все браузеры        |
+
+---
+
+## Cookie
+
+- Позволяют **передавать данные между клиентом и сервером**
+- Используются для **авторизации**, **сессий**, **персонализации**
+- Передаются в каждом HTTP-запросе, поэтому должны быть компактными
+- Настраиваются через `Set-Cookie` заголовок или `document.cookie`
+
+```js
+document.cookie = "theme=dark; path=/; max-age=3600";
+```
+
+<Mermaid
+  chart="
+sequenceDiagram
+  Client->>Server: HTTP Request (with Cookie)
+  Server->>Client: HTTP Response (Set-Cookie)
+  Client->>Server: Subsequent Requests (with Cookie)
+"
+/>
+
+---
+
+## LocalStorage
+
+- Подходит для **долгосрочного хранения данных** (тема, токены, настройки)
+- Доступен только на **клиенте**
+- Переживает перезапуск браузера
+
+```js
+localStorage.setItem("theme", "dark");
+const theme = localStorage.getItem("theme");
+localStorage.removeItem("theme");
+```
+
+<Mermaid
+  chart="
+graph LR;
+  App[Веб-приложение] -->|getItem/setItem| LS[LocalStorage];
+  LS -->|Данные сохраняются| Browser[Браузер];
+"
+/>
+
+---
+
+## SessionStorage
+
+- Аналогичен `localStorage`, но живёт **только в рамках одной вкладки**
+- После закрытия вкладки — данные удаляются
+
+```js
+sessionStorage.setItem("step", "2");
+sessionStorage.getItem("step");
+```
+
+<Mermaid
+  chart="
+stateDiagram-v2
+  [*] --> ActiveTab: Открыта вкладка
+  ActiveTab --> DataSaved: sessionStorage.setItem()
+  DataSaved --> DataAvailable: sessionStorage.getItem()
+  ActiveTab --> [*]: Закрыта вкладка
+"
+/>
+
+---
+
+## IndexedDB
+
+- **Асинхронная** база данных в браузере (key-value + индексы)
+- Позволяет хранить **структурированные объекты**, даже файлы
+- Подходит для offline-first приложений, PWA, больших данных
+
+```js
+const db = indexedDB.open("MyDB", 1);
+```
+
+<Mermaid
+  chart="
+erDiagram
+  DATABASE_MyDB {
+    string id PK
+    object data
+    date created
+    date updated
+  }
+"
+/>
+
+Использовать проще через обёртки:
+- [idb](https://github.com/jakearchibald/idb)
+- [Dexie.js](https://dexie.org/)
+
+---
+
+## Когда использовать что?
+
+| **Сценарий**               | **Рекомендуемое хранилище**          |
+|----------------------------|--------------------------------------|
+| Авторизация, токены        | `cookie` (с флагами Secure + HttpOnly) |
+| Настройки пользователя     | `localStorage`                       |
+| Временные данные          | `sessionStorage`                     |
+| Кэш оффлайн данных, PWA    | `indexedDB`                          |
+
+<Mermaid
+  chart="
+flowchart TD
+  A[Что храним?] --> B[Токены авторизации]
+  A --> C[Настройки]
+  A --> D[Временные данные]
+  A --> E[Оффлайн-кэш]
+  B -->|Cookie| F[HttpOnly + Secure]
+  C -->|LocalStorage| G[Постоянное хранение]
+  D -->|SessionStorage| H[Временное хранение]
+  E -->|IndexedDB| I[Сложные данные]
+"
+/>
+
+<Callout title="Безопасность" type="warning">
+Никогда не храните **токены доступа в LocalStorage или SessionStorage**, если их можно украсть через XSS. Используйте `HttpOnly` cookie.
+</Callout>
+
+---
+
+## Вывод
+
+- Используйте `cookie` для передачи между клиентом и сервером
+- Используйте `localStorage` для постоянных данных на клиенте
+- Используйте `sessionStorage` для временных, одноразовых данных
+- Используйте `IndexedDB` для сложного и большого хранения
