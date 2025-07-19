@@ -1,0 +1,143 @@
+---
+title: Что такое Shadow DOM?
+description: Shadow DOM — это пространство видимости для всего документа, которое создаётся из одного элемента DOM.
+---
+
+**Shadow DOM** — это технология в браузере, которая позволяет создавать **инкапсулированные DOM-деревья** внутри элементов.  
+Она изолирует HTML, CSS и JS, чтобы избежать конфликтов со стилями и скриптами внешней страницы.
+
+<Mermaid
+  chart="
+graph TD
+  A[Основной DOM] --> B[Элемент]
+  B --> C[Shadow DOM]
+  C --> D[Изолированные стили]
+  C --> E[Изолированный JS]
+  C --> F[Изолированная разметка]
+"
+/>
+
+---
+
+## Зачем нужен Shadow DOM?
+
+1. **Инкапсуляция**  
+   Всё, что находится внутри Shadow DOM, **недоступно извне напрямую**: ни CSS-стили, ни JS-код снаружи не влияют на внутренности компонента.
+
+2. **Изоляция стилей**  
+   Стили, написанные в Shadow DOM, **не протекают наружу**, и наоборот — стили снаружи **не влияют на внутреннюю структуру** компонента.
+
+3. **Чистота компонентов**  
+   Shadow DOM делает Web Components более надёжными и независимыми от внешней среды.
+
+---
+
+## Как использовать Shadow DOM
+
+Создаётся через метод `.attachShadow()`:
+
+```html
+<div id="my-element"></div>
+
+<script>
+  const host = document.getElementById("my-element");
+  const shadow = host.attachShadow({ mode: "open" });
+
+  shadow.innerHTML = `
+    <style>
+      p { color: red; }
+    </style>
+    <p>Привет из Shadow DOM!</p>
+  `;
+</script>
+```
+
+<Mermaid
+  chart="
+sequenceDiagram
+  participant Main as Основной DOM
+  participant Host as Хост-элемент
+  participant Shadow as Shadow DOM
+  
+  Main->>Host: Создаём элемент
+  Host->>Shadow: attachShadow({mode: 'open'})
+  Shadow-->>Host: Возвращает shadowRoot
+  Host->>Shadow: Добавляем содержимое
+"
+/>
+
+- `mode: "open"` — позволяет получить доступ к shadowRoot снаружи через JS.
+- `mode: "closed"` — делает shadowRoot полностью приватным.
+
+---
+
+## Структура
+
+<Mermaid
+  chart="
+graph TD
+  A[Custom Element] --> B[Shadow Host]
+  B --> C[Shadow Root]
+  C --> D[Shadow Tree]
+  D --> E[Стили]
+  D --> F[Разметка]
+  D --> G[Логика]
+  B --> H[Light DOM]
+"
+/>
+
+- **Custom Element** — пользовательский HTML-тег (например, `<my-modal>`)
+- **Shadow Root** — корень изолированного дерева
+- **Shadow DOM Tree** — содержимое компонента (внутренний HTML + стили)
+- **Light DOM** — контент, переданный внутрь тега как обычные дети
+
+---
+
+## Пример с Web Component
+
+```js
+class MyElement extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" }).innerHTML = `
+      <style>p { color: blue; }</style>
+      <p>Я в тени</p>
+    `;
+  }
+}
+
+customElements.define('my-element', MyElement);
+```
+
+**Теперь в HTML:**
+```html
+<my-element></my-element>
+```
+
+Компонент отрисуется, но его стили **не будут конфликтовать с внешними**.
+
+---
+
+## Когда использовать Shadow DOM?
+
+<Mermaid
+  chart="
+pie title Когда использовать Shadow DOM
+  'Web Components' : 45
+  'UI-библиотеки' : 35
+  'Инкапсуляция логики' : 20
+"
+/>
+
+**Подходит для:**
+- Web Components (например, `<my-button>`, `<user-card>`)
+- UI-библиотек со своими стилями (без конфликтов)
+- Инкапсуляции логики и разметки
+
+**Не обязателен, если:**
+- Вы работаете в рамках фреймворков (React, Vue), которые решают изоляцию по-другому
+- Компоненты не требуют строгой изоляции от внешнего CSS
+
+## Вывод
+ **Shadow DOM** — это способ создавать **изолированные, безопасные компоненты** с собственными стилями и структурой. Он лежит в основе **Web Components** и используется для достижения **инкапсуляции и повторного использования UI**.
+
